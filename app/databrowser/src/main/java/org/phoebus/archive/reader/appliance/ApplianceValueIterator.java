@@ -2,11 +2,11 @@ package org.phoebus.archive.reader.appliance;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import org.epics.archiverappliance.retrieval.client.DataRetrieval;
 import org.epics.archiverappliance.retrieval.client.EpicsMessage;
 import org.epics.archiverappliance.retrieval.client.GenMsgIterator;
@@ -51,6 +51,8 @@ import gov.aps.jca.dbr.Status;
  */
 public abstract class ApplianceValueIterator implements ValueIterator {
 
+    protected int testCounter;
+    protected EnumDisplay enumDisplay;
     protected Display display;
     protected GenMsgIterator mainStream;
     protected Iterator<EpicsMessage> mainIterator;
@@ -153,6 +155,7 @@ public abstract class ApplianceValueIterator implements ValueIterator {
         final Alarm alarm = Alarm.of(getSeverity(dataMessage.getSeverity()), AlarmStatus.CLIENT, getStatus(dataMessage.getStatus()));
         final Time time = TimeHelper.fromInstant(TimestampHelper.fromSQLTimestamp(dataMessage.getTimestamp()));
 
+        testCounter++;
         if (type == PayloadType.SCALAR_BYTE ||
             type == PayloadType.SCALAR_DOUBLE ||
             type == PayloadType.SCALAR_FLOAT ||
@@ -162,8 +165,10 @@ public abstract class ApplianceValueIterator implements ValueIterator {
                               alarm, time,
                               display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
         } else if (type == PayloadType.SCALAR_ENUM) {
+            //if (enumDisplay==null) enumDisplay = getEnumDisplay(mainStream.getPayLoadInfo());
+
             return VEnum.of(dataMessage.getNumberValue().intValue(),
-                            EnumDisplay.of(), //TODO get the labels from somewhere
+                            enumDisplay == null ? getEnumDisplay(mainStream.getPayLoadInfo()) : enumDisplay, //TODO get the labels from somewhere
                             alarm, time);
         } else if (type == PayloadType.SCALAR_STRING) {
             if (valDescriptor == null) {
@@ -294,6 +299,32 @@ public abstract class ApplianceValueIterator implements ValueIterator {
                                : NumberFormats.toStringFormat());
     }
 
+    /**
+     * Extract the enum labels from the given payloadinfo. 
+     * EnumLabels list empty if payloadinfo from request without "fetchLatestMetadata" set to true
+     *
+     * @param info the info to extract the labels
+     * @return the EnumDisplay containing the labels
+     */
+    protected EnumDisplay getEnumDisplay(PayloadInfo info) {
+        List<FieldValue> labelsTemp = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+
+        for (FieldValue fv : mainStream.getPayLoadInfo().getHeadersList()) {             
+            if (fv.getName().startsWith("ENUM_")) {
+                labelsTemp.add(fv);
+            }
+        }
+            // Sort by index in FieldValue Name because headers not sorted
+        labelsTemp.sort((fv1, fv2) -> Integer.compare(Integer.parseInt(fv1.getName().substring(5)),
+                        Integer.parseInt(fv2.getName().substring(5))));
+
+        for (FieldValue fv : labelsTemp) {
+            labels.add(fv.getVal());
+        }
+
+        return EnumDisplay.of(labels);
+    }
 
     /**
      * Determines alarm severity from the given numerical representation.
