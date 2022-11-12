@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import org.epics.archiverappliance.retrieval.client.DataRetrieval;
 import org.epics.archiverappliance.retrieval.client.EpicsMessage;
 import org.epics.archiverappliance.retrieval.client.GenMsgIterator;
@@ -165,10 +166,10 @@ public abstract class ApplianceValueIterator implements ValueIterator {
                               alarm, time,
                               display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
         } else if (type == PayloadType.SCALAR_ENUM) {
-            //if (enumDisplay==null) enumDisplay = getEnumDisplay(mainStream.getPayLoadInfo());
+            if (enumDisplay==null) enumDisplay = getEnumDisplay(mainStream.getPayLoadInfo());
 
             return VEnum.of(dataMessage.getNumberValue().intValue(),
-                            enumDisplay == null ? getEnumDisplay(mainStream.getPayLoadInfo()) : enumDisplay, //TODO get the labels from somewhere
+                            enumDisplay, //TODO get the labels from somewhere
                             alarm, time);
         } else if (type == PayloadType.SCALAR_STRING) {
             if (valDescriptor == null) {
@@ -300,7 +301,7 @@ public abstract class ApplianceValueIterator implements ValueIterator {
     }
 
     /**
-     * Extract the enum labels from the given payloadinfo. 
+     * Extract the labels from the given payloadinfo when processing Enum Values. 
      * EnumLabels list empty if payloadinfo from request without "fetchLatestMetadata" set to true
      *
      * @param info the info to extract the labels
