@@ -52,7 +52,6 @@ import gov.aps.jca.dbr.Status;
  */
 public abstract class ApplianceValueIterator implements ValueIterator {
 
-    protected int testCounter;
     protected EnumDisplay enumDisplay;
     protected Display display;
     protected GenMsgIterator mainStream;
@@ -156,7 +155,6 @@ public abstract class ApplianceValueIterator implements ValueIterator {
         final Alarm alarm = Alarm.of(getSeverity(dataMessage.getSeverity()), AlarmStatus.CLIENT, getStatus(dataMessage.getStatus()));
         final Time time = TimeHelper.fromInstant(TimestampHelper.fromSQLTimestamp(dataMessage.getTimestamp()));
 
-        testCounter++;
         if (type == PayloadType.SCALAR_BYTE ||
             type == PayloadType.SCALAR_DOUBLE ||
             type == PayloadType.SCALAR_FLOAT ||
