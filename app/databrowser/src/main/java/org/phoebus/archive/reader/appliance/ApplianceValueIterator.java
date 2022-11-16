@@ -160,9 +160,9 @@ public abstract class ApplianceValueIterator implements ValueIterator {
             type == PayloadType.SCALAR_FLOAT ||
             type == PayloadType.SCALAR_INT ||
             type == PayloadType.SCALAR_SHORT) {
+            if (display==null) display = getDisplay(mainStream.getPayLoadInfo());
             return VNumber.of(dataMessage.getNumberValue(),
-                              alarm, time,
-                              display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
+                              alarm, time, display);
         } else if (type == PayloadType.SCALAR_ENUM) {
             if (enumDisplay==null) enumDisplay = getEnumDisplay(mainStream.getPayLoadInfo());
 
@@ -193,9 +193,11 @@ public abstract class ApplianceValueIterator implements ValueIterator {
                     val[i++] = ((Float)d).doubleValue();
                 }
             }
+
+            if (display==null) display = getDisplay(mainStream.getPayLoadInfo());
             return VDoubleArray.of(ArrayDouble.of(val),
                                    alarm, time,
-                                   display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
+                                   display);
         } else if (type == PayloadType.WAVEFORM_INT
                 || type == PayloadType.WAVEFORM_SHORT) {
             if (valDescriptor == null) {
@@ -209,17 +211,19 @@ public abstract class ApplianceValueIterator implements ValueIterator {
                 val[i++] = ((Integer)d).intValue();
             }
 
+            if (display==null) display = getDisplay(mainStream.getPayLoadInfo());
             return VIntArray.of(ArrayInteger.of(val),
                                 alarm, time,
-                                display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
+                                display);
         } else if (type == PayloadType.WAVEFORM_BYTE) {
             if (valDescriptor == null) {
                 valDescriptor = getValDescriptor(dataMessage);
             }
+            if (display==null) display = getDisplay(mainStream.getPayLoadInfo());
             //we could load the data directly using result.getNumberAt(index), but this is faster
             return VByteArray.of(ArrayByte.of(((ByteString)dataMessage.getMessage().getField(valDescriptor)).toByteArray()),
                                  alarm, time,
-                                 display == null ? getDisplay(mainStream.getPayLoadInfo()) : display);
+                                 display);
         }
         throw new UnsupportedOperationException("PV type " + type + " is not supported.");
     }
