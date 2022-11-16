@@ -76,6 +76,7 @@ import org.epics.vtype.VULong;
 import org.epics.vtype.VULongArray;
 import org.epics.vtype.VUShort;
 import org.epics.vtype.VUShortArray;
+import org.phoebus.pv.ca.DBRHelper;
 
 /** Decodes {@link Time}, {@link Alarm}, {@link Display}, ...
  *  @author Kay Kasemir
@@ -154,15 +155,24 @@ public class Decoders
                 timestamp = NO_TIME;
             else
                 timestamp = Instant.ofEpochSecond(sec.get(), nano.get());
-            final PVAInt user = time.get("userTag");
-            usertag = user == null ? NO_USERTAG : user.get();
+            // 2022-10 EPICS Developers meeting proposed 64 bit (Long) userTag
+            // Allow for that, but only use integer until VType is updated
+            final PVANumber user = time.get("userTag");
+            usertag = user == null ? NO_USERTAG : user.getNumber().intValue();
         }
         else
         {
             timestamp = NO_TIME;
             usertag = NO_USERTAG;
         }
-        return Time.of(timestamp, usertag, timestamp.getEpochSecond() > 0);
+
+        // A time stamp of all zeroes is not valid.
+        // In addition, a time stamp of 1990/01/02 00:00:00
+        // as used for the Channel Access and IOC time stamp epoch
+        // is considered invalid because IOCs send it for never processed records
+        final boolean valid = timestamp.getNano() != 0  &&
+                              (timestamp.getEpochSecond() > 0 &&  timestamp.getEpochSecond() != DBRHelper.EPICS_EPOCH);
+        return Time.of(timestamp, usertag, valid);
     }
 
     /** @param printfFormat Format from NTScalar display.format
