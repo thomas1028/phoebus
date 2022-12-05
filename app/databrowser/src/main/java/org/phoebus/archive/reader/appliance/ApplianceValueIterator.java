@@ -2,11 +2,7 @@ package org.phoebus.archive.reader.appliance;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.epics.archiverappliance.retrieval.client.DataRetrieval;
 import org.epics.archiverappliance.retrieval.client.EpicsMessage;
@@ -319,8 +315,7 @@ public abstract class ApplianceValueIterator implements ValueIterator {
             }
         }
             // Sort by index in FieldValue Name because headers not sorted
-        labelsTemp.sort((fv1, fv2) -> Integer.compare(Integer.parseInt(fv1.getName().substring(5)),
-                        Integer.parseInt(fv2.getName().substring(5))));
+        labelsTemp.sort(Comparator.comparingInt(fv -> Integer.parseInt(fv.getName().substring(5))));
 
         for (FieldValue fv : labelsTemp) {
             labels.add(fv.getVal());
