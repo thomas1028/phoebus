@@ -120,3 +120,6 @@ phoebus-product/settings_template.ini
 
 # hs_err* files
 **/hs_err*
+
+/.classpath
+/*.project
