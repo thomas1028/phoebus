@@ -107,9 +107,12 @@ public abstract class ApplianceValueIterator implements ValueIterator {
         java.sql.Timestamp sqlStartTimestamp = TimestampHelper.toSQLTimestamp(start);
         java.sql.Timestamp sqlEndTimestamp = TimestampHelper.toSQLTimestamp(end);
 
+        HashMap<String, String> otherParms = new HashMap<String, String>();
+        otherParms.put("fetchLatestMetadata", "true");  // Include Metadata like EnumLabels in the headers
+
         DataRetrieval dataRetrieval = reader.createDataRetriveal(reader.getDataRetrievalURL());
         synchronized(lock){
-            mainStream = dataRetrieval.getDataForPV(pvName, sqlStartTimestamp, sqlEndTimestamp);
+            mainStream = dataRetrieval.getDataForPV(pvName, sqlStartTimestamp, sqlEndTimestamp, false, otherParms);
         }
         if (mainStream != null) {
             mainIterator = mainStream.iterator();
@@ -167,9 +170,7 @@ public abstract class ApplianceValueIterator implements ValueIterator {
         } else if (type == PayloadType.SCALAR_ENUM) {
             if (enumDisplay==null) enumDisplay = getEnumDisplay(mainStream.getPayLoadInfo());
 
-            return VEnum.of(dataMessage.getNumberValue().intValue(),
-                            enumDisplay, //TODO get the labels from somewhere
-                            alarm, time);
+            return VEnum.of(dataMessage.getNumberValue().intValue(), enumDisplay, alarm, time);
         } else if (type == PayloadType.SCALAR_STRING) {
             if (valDescriptor == null) {
                 valDescriptor = getValDescriptor(dataMessage);
@@ -314,7 +315,7 @@ public abstract class ApplianceValueIterator implements ValueIterator {
         List<FieldValue> labelsTemp = new ArrayList<>();
         List<String> labels = new ArrayList<>();
 
-        for (FieldValue fv : mainStream.getPayLoadInfo().getHeadersList()) {             
+        for (FieldValue fv : info.getHeadersList()) {
             if (fv.getName().startsWith("ENUM_")) {
                 labelsTemp.add(fv);
             }
