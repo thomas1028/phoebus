@@ -69,10 +69,10 @@ public class PlotSample implements PlotDataItem<Instant>
             this.info = decodeAlarm(value);
             // For string PV add the text to info
             if (value instanceof VString) {
-                this.info = ((VString) value).getValue() + (" " + this.info).trim();
+                this.info = (((VString) value).getValue() + " " + this.info).trim();
             }
             else if (value instanceof VEnum) {
-                this.info = ((VEnum) value).getValue() + (" " + this.info).trim();
+                this.info = (((VEnum) value).getValue() + " " + this.info).trim();
             }
                 
         }
