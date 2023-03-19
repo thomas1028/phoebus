@@ -238,7 +238,7 @@ public class SampleView extends VBox
 
 
         // For also displaying the PVitem name in the list
-    private class PlotSampleWrapper {
+    private static class PlotSampleWrapper {
             private final PlotSample sample;
             private final ModelItem model_item;
 
