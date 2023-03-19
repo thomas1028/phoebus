@@ -139,20 +139,37 @@ public class SampleView extends VBox
     private void select(final String item_name)
     {
         this.item_name = item_name;
-        Activator.thread_pool.submit(this::getSamples);
+
+        if (item_name!=null && item_name.equals("All")) {
+            Activator.thread_pool.submit(this::getSamplesAll);
+        } else {
+            Activator.thread_pool.submit(this::getSamples);
+        }
     }
 
     private void update()
     {
         final List<String> model_items = model.getItems().stream().map(item -> item.getResolvedName()).collect(Collectors.toList());
-        if (! model_items.equals(items.getItems()))
+        final List<String> items_without_all = items.getItems().stream()
+                .filter(item -> ! item.equals("All")).collect(Collectors.toList()); // for comparing with model_items
+
+        if (! model_items.equals(items_without_all))
         {
             items.getItems().setAll( model_items );
+
+            if (! model_items.isEmpty()) {
+                items.getItems().add("All");
+            }
+
             if (item_name != null)
                 items.getSelectionModel().select(item_name);
         }
         // Update samples off the UI thread
-        Activator.thread_pool.submit(this::getSamples);
+        if (item_name != null && item_name.equals("All")) {
+            Activator.thread_pool.submit(this::getSamplesAll);
+        } else {
+            Activator.thread_pool.submit(this::getSamples);
+        }
     }
 
     private void getSamples()
@@ -176,6 +193,30 @@ public class SampleView extends VBox
                 {
                     Activator.logger.log(Level.WARNING, "Cannot access samples for " + item.getResolvedName(), ex);
                 }
+        }
+        // Update UI
+        Platform.runLater(() -> updateSamples(samples));
+    }
+
+    private void getSamplesAll() {
+        final List<ModelItem> items = model.getItems();
+        final ObservableList<PlotSample> samples = FXCollections.observableArrayList();
+
+        if (!items.isEmpty()) {
+            for (ModelItem item : items) {
+                final PlotSamples item_samples = item.getSamples();
+                try {
+                    if (item_samples.getLock().tryLock(2, TimeUnit.SECONDS)) {
+                        final int N = item_samples.size();
+                        for (int i = 0; i < N; ++i) {
+                            samples.add(item_samples.get(i));
+                        }
+                        item_samples.getLock().unlock();
+                    }
+                } catch (Exception ex) {
+                    Activator.logger.log(Level.WARNING, "Cannot access samples for " + item.getResolvedName(), ex);
+                }
+            }
         }
         // Update UI
         Platform.runLater(() -> updateSamples(samples));
