@@ -233,6 +233,7 @@ public class Messages
                          PointTypeTT,
                          PosErrColumn,
                          PropertiesTabName,
+                         PVColumn,
                          PVName,
                          PVUsedInFormulaFmt,
                          Refresh,

@@ -14,10 +14,8 @@ import java.util.stream.Collectors;
 
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
-import org.csstudio.trends.databrowser3.model.Model;
-import org.csstudio.trends.databrowser3.model.ModelItem;
-import org.csstudio.trends.databrowser3.model.PlotSample;
-import org.csstudio.trends.databrowser3.model.PlotSamples;
+import org.csstudio.trends.databrowser3.model.*;
+import org.epics.vtype.VType;
 import org.phoebus.archive.vtype.DoubleVTypeFormat;
 import org.phoebus.archive.vtype.VTypeFormat;
 import org.phoebus.archive.vtype.VTypeHelper;
@@ -51,16 +49,16 @@ public class SampleView extends VBox
     private final Model model;
     private final ComboBox<String> items = new ComboBox<>();
     private final Label sample_count = new Label(Messages.SampleView_Count);
-    private final TableView<PlotSample> sample_table = new TableView<>();
+    private final TableView<PlotSampleWrapper> sample_table = new TableView<>();
     private volatile String item_name = null;
 
-    private static class SeverityColoredTableCell extends TableCell<PlotSample, String>
+    private static class SeverityColoredTableCell extends TableCell<PlotSampleWrapper, String>
     {
         @Override
         protected void updateItem(final String item, final boolean empty)
         {
             super.updateItem(item, empty);
-            final TableRow<PlotSample> row = getTableRow();
+            final TableRow<PlotSampleWrapper> row = getTableRow();
             if (empty  ||  row == null  ||  row.getItem() == null)
                 setText("");
             else
@@ -109,7 +107,7 @@ public class SampleView extends VBox
 
     private void createSampleTable()
     {
-        TableColumn<PlotSample, String> col = new TableColumn<>(Messages.TimeColumn);
+        TableColumn<PlotSampleWrapper, String> col = new TableColumn<>(Messages.TimeColumn);
         final VTypeFormat format = DoubleVTypeFormat.get();
         col.setCellValueFactory(cell -> new SimpleStringProperty(TimestampFormats.FULL_FORMAT.format(org.phoebus.core.vtypes.VTypeHelper.getTimestamp(cell.getValue().getVType()))));
         sample_table.getColumns().add(col);
@@ -125,6 +123,10 @@ public class SampleView extends VBox
 
         col = new TableColumn<>(Messages.StatusColumn);
         col.setCellValueFactory(cell -> new SimpleStringProperty(VTypeHelper.getMessage(cell.getValue().getVType())));
+        sample_table.getColumns().add(col);
+
+        col = new TableColumn<>(Messages.PVColumn);
+        col.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getPVName()));
         sample_table.getColumns().add(col);
 
         col = new TableColumn<>(Messages.SampleView_Source);
@@ -175,7 +177,7 @@ public class SampleView extends VBox
     private void getSamples()
     {
         final ModelItem item = model.getItem(item_name);
-        final ObservableList<PlotSample> samples = FXCollections.observableArrayList();
+        final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
         if (item != null)
         {
                 final PlotSamples item_samples = item.getSamples();
@@ -184,8 +186,10 @@ public class SampleView extends VBox
                     if (item_samples.getLock().tryLock(2, TimeUnit.SECONDS))
                     {
                         final int N = item_samples.size();
-                        for (int i=0; i<N; ++i)
-                            samples.add(item_samples.get(i));
+                        for (int i=0; i<N; ++i) {
+                            PlotSampleWrapper wrapped_sample = new PlotSampleWrapper(item_samples.get(i), item);
+                            samples.add(wrapped_sample);
+                        }
                         item_samples.getLock().unlock();
                     }
                 }
@@ -200,7 +204,7 @@ public class SampleView extends VBox
 
     private void getSamplesAll() {
         final List<ModelItem> items = model.getItems();
-        final ObservableList<PlotSample> samples = FXCollections.observableArrayList();
+        final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
 
         if (!items.isEmpty()) {
             for (ModelItem item : items) {
@@ -209,7 +213,8 @@ public class SampleView extends VBox
                     if (item_samples.getLock().tryLock(2, TimeUnit.SECONDS)) {
                         final int N = item_samples.size();
                         for (int i = 0; i < N; ++i) {
-                            samples.add(item_samples.get(i));
+                            PlotSampleWrapper wrapped_sample = new PlotSampleWrapper(item_samples.get(i), item);
+                            samples.add(wrapped_sample);
                         }
                         item_samples.getLock().unlock();
                     }
@@ -222,9 +227,42 @@ public class SampleView extends VBox
         Platform.runLater(() -> updateSamples(samples));
     }
 
-    private void updateSamples(final ObservableList<PlotSample> samples)
+    private void updateSamples(final ObservableList<PlotSampleWrapper> samples)
     {
+            // Display the PVitem name (Column 4) in the list when displaying all Samples in the model
+        sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All"));
+
         sample_count.setText(Messages.SampleView_Count + " " + samples.size());
         sample_table.setItems(samples);
     }
+
+
+        // For also displaying the PVitem name in the list
+    private class PlotSampleWrapper {
+            private final PlotSample sample;
+            private final ModelItem model_item;
+
+            public PlotSampleWrapper(final PlotSample sample, final ModelItem model_item) {
+                this.sample = sample;
+                this.model_item = model_item;
+            }
+
+            public VType getVType() {
+                return sample.getVType();
+            }
+
+            public String getSource() {
+                return sample.getSource();
+            }
+
+            public String getPVName() {
+                return model_item.getResolvedName();
+            }
+
+            @Override
+            public String toString() {
+                return sample.toString();
+            }
+        }
+
 }
