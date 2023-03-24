@@ -8,10 +8,13 @@
 package org.csstudio.trends.databrowser3.ui.sampleview;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.model.*;
@@ -51,6 +54,9 @@ public class SampleView extends VBox
     private final Label sample_count = new Label(Messages.SampleView_Count);
     private final TableView<PlotSampleWrapper> sample_table = new TableView<>();
     private volatile String item_name = null;
+    private final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
+    private final FilteredList<PlotSampleWrapper> filtered_samples = new FilteredList<>(samples);
+    private final SortedList<PlotSampleWrapper> sorted_samples = new SortedList<>(filtered_samples);
 
     private static class SeverityColoredTableCell extends TableCell<PlotSampleWrapper, String>
     {
@@ -136,6 +142,9 @@ public class SampleView extends VBox
         sample_table.setMaxWidth(Double.MAX_VALUE);
         sample_table.setPlaceholder(new Label(Messages.SampleView_SelectItem));
         sample_table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        sample_table.setItems(sorted_samples);
+        sorted_samples.comparatorProperty().bind(sample_table.comparatorProperty());
     }
 
     private void select(final String item_name)
@@ -151,9 +160,9 @@ public class SampleView extends VBox
 
     private void update()
     {
-        final List<String> model_items = model.getItems().stream().map(item -> item.getResolvedName()).collect(Collectors.toList());
+        final List<String> model_items = model.getItems().stream().map(ModelItem::getResolvedName).collect(Collectors.toList());
         final List<String> items_without_all = items.getItems().stream()
-                .filter(item -> ! item.equals("All")).collect(Collectors.toList()); // for comparing with model_items
+                .filter(item -> ! item.equals("All")).collect(Collectors.toList()); // for comparing with model_items and updating on change
 
         if (! model_items.equals(items_without_all))
         {
@@ -232,10 +241,21 @@ public class SampleView extends VBox
             // Display the PVitem name (Column 4) in the list when displaying all Samples in the model
         sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All"));
 
-        sample_count.setText(Messages.SampleView_Count + " " + samples.size());
-        sample_table.setItems(samples);
-    }
+        this.samples.setAll(samples);
 
+        if (Objects.equals(item_name, "All")) {
+            sample_table.getColumns().get(4).setVisible(true);
+                // Hide samples that are not visible in the plot when viewing all items
+            filtered_samples.setPredicate(sample -> sample.getModelItem().isVisible());
+            sample_count.setText(Messages.SampleView_Count + " " + samples.size()
+                    + " (" + Messages.SampleView_Count_Visible + " " + filtered_samples.size() + ")");
+        } else {
+            sample_table.getColumns().get(4).setVisible(false);
+                // No need to hide if only viewing one item
+            filtered_samples.setPredicate(sample -> true);
+            sample_count.setText(Messages.SampleView_Count + " " + samples.size());
+        }
+    }
 
         // For also displaying the PVitem name in the list
     private static class PlotSampleWrapper {
@@ -245,6 +265,14 @@ public class SampleView extends VBox
             public PlotSampleWrapper(final PlotSample sample, final ModelItem model_item) {
                 this.sample = sample;
                 this.model_item = model_item;
+            }
+
+            public PlotSample getSample() {
+                return sample;
+            }
+
+            public ModelItem getModelItem() {
+                return model_item;
             }
 
             public VType getVType() {

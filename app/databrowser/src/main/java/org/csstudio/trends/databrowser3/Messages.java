@@ -247,6 +247,7 @@ public class Messages
                          RequestTypeWarning,
                          RequestTypeWarningDetail,
                          SampleView_Count,
+                         SampleView_Count_Visible,
                          SampleView_Item,
                          SampleView_Refresh,
                          SampleView_RefreshTT,
