@@ -117,6 +117,7 @@ public class SampleView extends VBox
         final VTypeFormat format = DoubleVTypeFormat.get();
         col.setCellValueFactory(cell -> new SimpleStringProperty(TimestampFormats.FULL_FORMAT.format(org.phoebus.core.vtypes.VTypeHelper.getTimestamp(cell.getValue().getVType()))));
         sample_table.getColumns().add(col);
+        sample_table.getSortOrder().add(col);
 
         col = new TableColumn<>(Messages.ValueColumn);
         col.setCellValueFactory(cell -> new SimpleStringProperty(format.format(cell.getValue().getVType())));
