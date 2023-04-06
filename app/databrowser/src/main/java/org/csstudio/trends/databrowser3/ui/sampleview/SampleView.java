@@ -15,9 +15,11 @@ import java.util.stream.Collectors;
 
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.scene.control.*;
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.model.*;
+import org.epics.vtype.Alarm;
 import org.epics.vtype.VType;
 import org.phoebus.archive.vtype.DoubleVTypeFormat;
 import org.phoebus.archive.vtype.VTypeFormat;
@@ -31,14 +33,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -52,6 +46,7 @@ public class SampleView extends VBox
     private final Model model;
     private final ComboBox<String> items = new ComboBox<>();
     private final Label sample_count = new Label(Messages.SampleView_Count);
+    private final CheckBox alarm_changes_checkbox = new CheckBox("Show only alarm changes"); //TODO: get from Messages
     private final TableView<PlotSampleWrapper> sample_table = new TableView<>();
     private volatile String item_name = null;
     private final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
@@ -90,6 +85,9 @@ public class SampleView extends VBox
         final HBox top_row = new HBox(5, label, items, refresh);
         top_row.setAlignment(Pos.CENTER_LEFT);
 
+        alarm_changes_checkbox.setTooltip(new Tooltip("Show only samples with alarm changes")); //TODO: get from Messages
+        alarm_changes_checkbox.setOnAction(event -> alarm_checkbox_action());
+
         // Combo should fill the available space.
         // Tried HBox.setHgrow(items, Priority.ALWAYS) etc.,
         // but always resulted in shrinking the label and button.
@@ -104,7 +102,7 @@ public class SampleView extends VBox
         sample_count.setPadding(new Insets(5));
         sample_table.setPadding(new Insets(0, 5, 5, 5));
         VBox.setVgrow(sample_table, Priority.ALWAYS);
-        getChildren().setAll(top_row, sample_count, sample_table);
+        getChildren().setAll(top_row, sample_count, alarm_changes_checkbox, sample_table);
 
         // TODO Add 'export' to sample view? CSV in a format usable by import
 
@@ -237,12 +235,13 @@ public class SampleView extends VBox
         Platform.runLater(() -> updateSamples(samples));
     }
 
-    private void updateSamples(final ObservableList<PlotSampleWrapper> samples)
+    private void updateSamples(ObservableList<PlotSampleWrapper> samples)
     {
+        this.samples.setAll(samples);
+
             // Display the PVitem name (Column 4) in the list when displaying all Samples in the model
         sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All"));
 
-        this.samples.setAll(samples);
 
         if (Objects.equals(item_name, "All")) {
             sample_table.getColumns().get(4).setVisible(true);
@@ -256,6 +255,43 @@ public class SampleView extends VBox
             filtered_samples.setPredicate(sample -> true);
             sample_count.setText(Messages.SampleView_Count + " " + samples.size());
         }
+    }
+
+    private void alarm_checkbox_action() {
+        // check state of checkbox
+        // if checked, run showAlarmChanges() and  run updateSamples() with the returned
+        // else update()
+
+        // TODO: when changing item it will overwrite the checkbox state
+        if (alarm_changes_checkbox.isSelected()) {
+            updateSamples(showAlarmChanges());
+        } else {
+            update();
+        }
+
+    }
+
+    private ObservableList<PlotSampleWrapper> showAlarmChanges() {
+        final ObservableList<PlotSampleWrapper> new_samples = FXCollections.observableArrayList();
+        Alarm alarm = Alarm.none();
+
+        for (PlotSampleWrapper sample : this.samples) {
+            Alarm value_alarm = Alarm.alarmOf(sample.getSample().getVType());
+            if (! value_alarm.equals(alarm)) {
+                alarm = value_alarm;
+                new_samples.add(sample);
+            }
+        }
+
+        return new_samples;
+    }
+
+    private void showThresholdCrossings(VType threshold_value) {
+        // Goes through the samples if between two samples the threshold is crossed,
+        // then the second sample is added to the list (After it passes the threshold)
+
+        // Have to handle most Vtypes seperately. Only the numeric and ENUM types can be compared
+        // TODO: strings and arrays not handled yet
     }
 
         // For also displaying the PVitem name in the list
