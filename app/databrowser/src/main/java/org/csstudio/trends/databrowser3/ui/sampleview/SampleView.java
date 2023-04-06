@@ -86,7 +86,7 @@ public class SampleView extends VBox
         top_row.setAlignment(Pos.CENTER_LEFT);
 
         alarm_changes_checkbox.setTooltip(new Tooltip("Show only samples with alarm changes")); //TODO: get from Messages
-        alarm_changes_checkbox.setOnAction(event -> alarm_checkbox_action());
+        alarm_changes_checkbox.setOnAction(event -> update());
 
         // Combo should fill the available space.
         // Tried HBox.setHgrow(items, Priority.ALWAYS) etc.,
@@ -237,7 +237,14 @@ public class SampleView extends VBox
 
     private void updateSamples(ObservableList<PlotSampleWrapper> samples)
     {
-        this.samples.setAll(samples);
+
+        // check if only viewing alarm changes
+        if (alarm_changes_checkbox.isSelected()) {
+            this.samples.setAll(showAlarmChanges());    // maybe integrate this into getSamples() and getSamplesAll() to not iterate twice
+        } else {
+            this.samples.setAll(samples);
+        }
+        
 
             // Display the PVitem name (Column 4) in the list when displaying all Samples in the model
         sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All"));
@@ -255,20 +262,6 @@ public class SampleView extends VBox
             filtered_samples.setPredicate(sample -> true);
             sample_count.setText(Messages.SampleView_Count + " " + samples.size());
         }
-    }
-
-    private void alarm_checkbox_action() {
-        // check state of checkbox
-        // if checked, run showAlarmChanges() and  run updateSamples() with the returned
-        // else update()
-
-        // TODO: when changing item it will overwrite the checkbox state
-        if (alarm_changes_checkbox.isSelected()) {
-            updateSamples(showAlarmChanges());
-        } else {
-            update();
-        }
-
     }
 
     private ObservableList<PlotSampleWrapper> showAlarmChanges() {
