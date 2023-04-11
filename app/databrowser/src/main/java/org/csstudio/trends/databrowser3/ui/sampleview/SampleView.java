@@ -85,6 +85,10 @@ public class SampleView extends VBox
         final HBox top_row = new HBox(5, label, items, refresh);
         top_row.setAlignment(Pos.CENTER_LEFT);
 
+        final HBox second_row = new HBox(5, sample_count, alarm_changes_checkbox);
+        HBox.setMargin(alarm_changes_checkbox, new Insets(0, 0, 0, 10));
+        second_row.setAlignment(Pos.CENTER_LEFT);
+
         alarm_changes_checkbox.setTooltip(new Tooltip("Show only samples with alarm changes")); //TODO: get from Messages
         alarm_changes_checkbox.setOnAction(event -> update());
 
@@ -102,7 +106,7 @@ public class SampleView extends VBox
         sample_count.setPadding(new Insets(5));
         sample_table.setPadding(new Insets(0, 5, 5, 5));
         VBox.setVgrow(sample_table, Priority.ALWAYS);
-        getChildren().setAll(top_row, sample_count, alarm_changes_checkbox, sample_table);
+        getChildren().setAll(top_row, second_row, sample_table);
 
         // TODO Add 'export' to sample view? CSV in a format usable by import
 
@@ -244,14 +248,10 @@ public class SampleView extends VBox
         } else {
             this.samples.setAll(samples);
         }
-        
-
-            // Display the PVitem name (Column 4) in the list when displaying all Samples in the model
-        sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All"));
 
 
         if (Objects.equals(item_name, "All")) {
-            sample_table.getColumns().get(4).setVisible(true);
+            sample_table.getColumns().get(4).setVisible(true); // Display the PVitem name (Column 4)
                 // Hide samples that are not visible in the plot when viewing all items
             filtered_samples.setPredicate(sample -> sample.getModelItem().isVisible());
             sample_count.setText(Messages.SampleView_Count + " " + samples.size()
@@ -261,6 +261,12 @@ public class SampleView extends VBox
                 // No need to hide if only viewing one item
             filtered_samples.setPredicate(sample -> true);
             sample_count.setText(Messages.SampleView_Count + " " + samples.size());
+
+
+            if (alarm_changes_checkbox.isSelected()) {
+                sample_count.setText(Messages.SampleView_Count + " " + samples.size()
+                        + " (" + Messages.SampleView_Count_Visible + " " + filtered_samples.size() + ")");
+            }
         }
     }
 
@@ -270,7 +276,7 @@ public class SampleView extends VBox
 
         for (PlotSampleWrapper sample : this.samples) {
             Alarm value_alarm = Alarm.alarmOf(sample.getSample().getVType());
-            if (! value_alarm.equals(alarm)) {
+            if (! value_alarm.getSeverity().equals(alarm.getSeverity())) {
                 alarm = value_alarm;
                 new_samples.add(sample);
             }
