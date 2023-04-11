@@ -85,14 +85,19 @@ public class Perspective extends SplitPane
     private final Controller controller;
     private final TabPane left_tabs = new TabPane(),
                           bottom_tabs = new TabPane();
-    private final SplitPane plot_and_tabs = new SplitPane(plot.getPlot(), bottom_tabs);
+    private final TabPane top_tabs = new TabPane();
+    private final SplitPane plot_and_tabs = new SplitPane(top_tabs, bottom_tabs);
     private PropertyPanel property_panel;
-    private Tab search_tab, properties_tab, export_tab, inspect_tab, waveform_tab = null;
+    private Tab plot_tab, search_tab, properties_tab, export_tab, inspect_tab, waveform_tab = null;
 
 
     /** @param minimal Only show the essentials? */
     public Perspective(final boolean minimal)
     {
+        plot_tab = new Tab("Plot", plot.getPlot()); // TODO: Get text from Messages
+        plot_tab.setGraphic(Activator.getIcon("databrowser"));
+        top_tabs.getTabs().setAll(plot_tab);
+
         property_panel = new PropertyPanel(model, plot.getPlot().getUndoableActionManager());
         properties_tab = new Tab(Messages.PropertiesTabName, property_panel);
         properties_tab.setGraphic(Activator.getIcon("properties"));
@@ -175,7 +180,7 @@ public class Perspective extends SplitPane
         show_samples.setOnAction(event ->
         {
             createInspectionTab();
-            showBottomTab(inspect_tab);
+            showTopTab(inspect_tab);
         });
 
         final MenuItem show_waveform = new MenuItem(Messages.OpenWaveformView, Activator.getIcon("wavesample"));
@@ -399,6 +404,29 @@ public class Perspective extends SplitPane
         if (! plot_and_tabs.getItems().contains(bottom_tabs))
         {
             plot_and_tabs.getItems().add(bottom_tabs);
+            plot_and_tabs.setDividerPositions(0.8);
+        }
+        if (plot_and_tabs.getDividers().get(0).getPosition() > 0.9)
+            plot_and_tabs.setDividerPositions(0.8);
+
+        // If tab was just added, its header won't show
+        // correctly unless we schedule a re-layout
+        Platform.runLater(() -> plot_and_tabs.layout() );
+    }
+
+    private void showTopTab(final Tab tab)
+    {
+        // If tab not on screen, add it
+        if (! top_tabs.getTabs().contains(tab))
+                top_tabs.getTabs().add(tab);
+
+        // Select the requested tab
+        top_tabs.getSelectionModel().select(tab);
+
+        // Assert that the tabs section is visible
+        if (! plot_and_tabs.getItems().contains(top_tabs))
+        {
+            plot_and_tabs.getItems().add(top_tabs);
             plot_and_tabs.setDividerPositions(0.8);
         }
         if (plot_and_tabs.getDividers().get(0).getPosition() > 0.9)
