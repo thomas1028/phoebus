@@ -96,6 +96,7 @@ public class Perspective extends SplitPane
     {
         plot_tab = new Tab("Plot", plot.getPlot()); // TODO: Get text from Messages
         plot_tab.setGraphic(Activator.getIcon("databrowser"));
+        plot_tab.setClosable(false);
         top_tabs.getTabs().setAll(plot_tab);
 
         property_panel = new PropertyPanel(model, plot.getPlot().getUndoableActionManager());
