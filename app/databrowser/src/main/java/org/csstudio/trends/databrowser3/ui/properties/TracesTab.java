@@ -706,7 +706,7 @@ public class TracesTab extends Tab
 
 
         // Filter Value Column ----------
-        col = new TableColumn<>("Filter Value"); //TODO: Messages.TracesFilterValue
+        col = new TableColumn<>(Messages.TracesFilterValue);
         col.setCellValueFactory(cell ->
             new SimpleStringProperty(Double.toString(cell.getValue().getSampleViewFilter().getFilterValue())));
         col.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -727,7 +727,7 @@ public class TracesTab extends Tab
             }
         });
 
-        PropertyPanel.addTooltip(col, "Filter SampleView"); //TODO: Messages.TracesFilterValueTT
+        PropertyPanel.addTooltip(col, Messages.TracesFilterValueTT);
         trace_table.getColumns().add(col);
 
 

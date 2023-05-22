@@ -295,6 +295,8 @@ public class Messages
                          TraceLineWidthTT,
                          TracesFilterType,
                          TracesFilterTypeTT,
+                         TracesFilterValue,
+                         TracesFilterValueTT,
                          TracesTab,
                          TraceTableEmpty,
                          TraceType,
