@@ -293,6 +293,8 @@ public class Messages
                          TraceLineStyleTT,
                          TraceLineWidth,
                          TraceLineWidthTT,
+                         TracesFilterType,
+                         TracesFilterTypeTT,
                          TracesTab,
                          TraceTableEmpty,
                          TraceType,

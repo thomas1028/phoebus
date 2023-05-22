@@ -20,6 +20,7 @@ import org.csstudio.javafx.rtplot.TraceType;
 import org.csstudio.javafx.rtplot.data.PlotDataItem;
 import org.csstudio.trends.databrowser3.persistence.XMLPersistence;
 import org.csstudio.trends.databrowser3.preferences.Preferences;
+import org.csstudio.trends.databrowser3.ui.sampleview.ItemSampleViewFilter;
 import org.phoebus.framework.persistence.XMLUtil;
 import org.w3c.dom.Element;
 
@@ -83,6 +84,9 @@ abstract public class ModelItem
      * and there is no setter method.
      */
     private String uniqueId;
+
+    /** Item specific settings for SampleView filter*/
+    private ItemSampleViewFilter sample_view_filter = new ItemSampleViewFilter();
 
     /** Initialize
      *  @param name Name of the PV or the formula
@@ -500,5 +504,15 @@ abstract public class ModelItem
     public String toString()
     {
         return name;
+    }
+
+    public ItemSampleViewFilter getSampleViewFilter()
+    {
+        return sample_view_filter;
+    }
+
+    public void setSampleViewFilter(ItemSampleViewFilter sample_view_filter)
+    {
+        this.sample_view_filter = sample_view_filter;
     }
 }

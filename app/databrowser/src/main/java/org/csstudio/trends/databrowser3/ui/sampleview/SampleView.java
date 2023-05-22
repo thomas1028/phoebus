@@ -7,6 +7,7 @@
  ******************************************************************************/
 package org.csstudio.trends.databrowser3.ui.sampleview;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -16,11 +17,12 @@ import java.util.stream.Collectors;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.scene.control.*;
+import javafx.scene.layout.Region;
+import javafx.util.converter.DoubleStringConverter;
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.model.*;
-import org.epics.vtype.Alarm;
-import org.epics.vtype.VType;
+import org.epics.vtype.*;
 import org.phoebus.archive.vtype.DoubleVTypeFormat;
 import org.phoebus.archive.vtype.VTypeFormat;
 import org.phoebus.archive.vtype.VTypeHelper;
@@ -46,12 +48,11 @@ public class SampleView extends VBox
     private final Model model;
     private final ComboBox<String> items = new ComboBox<>();
     private final Label sample_count = new Label(Messages.SampleView_Count);
-    private final CheckBox alarm_changes_checkbox = new CheckBox("Show only alarm changes"); //TODO: get from Messages
     private final TableView<PlotSampleWrapper> sample_table = new TableView<>();
     private volatile String item_name = null;
     private final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
-    private final FilteredList<PlotSampleWrapper> filtered_samples = new FilteredList<>(samples);
-    private final SortedList<PlotSampleWrapper> sorted_samples = new SortedList<>(filtered_samples);
+    private final SortedList<PlotSampleWrapper> sorted_samples = new SortedList<>(samples);
+    private int all_samples_size;
 
     private static class SeverityColoredTableCell extends TableCell<PlotSampleWrapper, String>
     {
@@ -85,12 +86,8 @@ public class SampleView extends VBox
         final HBox top_row = new HBox(5, label, items, refresh);
         top_row.setAlignment(Pos.CENTER_LEFT);
 
-        final HBox second_row = new HBox(5, sample_count, alarm_changes_checkbox);
-        HBox.setMargin(alarm_changes_checkbox, new Insets(0, 0, 0, 10));
-        second_row.setAlignment(Pos.CENTER_LEFT);
+        final HBox second_row = new HBox(5, sample_count, new Region());
 
-        alarm_changes_checkbox.setTooltip(new Tooltip("Show only samples with alarm changes")); //TODO: get from Messages
-        alarm_changes_checkbox.setOnAction(event -> update());
 
         // Combo should fill the available space.
         // Tried HBox.setHgrow(items, Priority.ALWAYS) etc.,
@@ -234,6 +231,7 @@ public class SampleView extends VBox
                     Activator.logger.log(Level.WARNING, "Cannot access samples for " + item.getResolvedName(), ex);
                 }
             }
+
         }
         // Update UI
         Platform.runLater(() -> updateSamples(samples));
@@ -241,56 +239,80 @@ public class SampleView extends VBox
 
     private void updateSamples(ObservableList<PlotSampleWrapper> samples)
     {
+        all_samples_size = samples.size();
+        this.samples.setAll(runSampleViewFilter(samples));
 
-        // check if only viewing alarm changes
-        if (alarm_changes_checkbox.isSelected()) {
-            this.samples.setAll(showAlarmChanges());    // maybe integrate this into getSamples() and getSamplesAll() to not iterate twice
-        } else {
-            this.samples.setAll(samples);
-        }
+        sample_table.getColumns().get(4).setVisible(true); // Display the PVitem name (Column 4)
+            // Hide samples that are not visible in the plot when viewing all items
+        sample_count.setText(Messages.SampleView_Count + " " + all_samples_size
+                + " (" + Messages.SampleView_Count_Visible + " " + this.samples.size() + ")");
 
-
-        if (Objects.equals(item_name, "All")) {
-            sample_table.getColumns().get(4).setVisible(true); // Display the PVitem name (Column 4)
-                // Hide samples that are not visible in the plot when viewing all items
-            filtered_samples.setPredicate(sample -> sample.getModelItem().isVisible());
-            sample_count.setText(Messages.SampleView_Count + " " + samples.size()
-                    + " (" + Messages.SampleView_Count_Visible + " " + filtered_samples.size() + ")");
-        } else {
-            sample_table.getColumns().get(4).setVisible(false);
-                // No need to hide if only viewing one item
-            filtered_samples.setPredicate(sample -> true);
-            sample_count.setText(Messages.SampleView_Count + " " + samples.size());
-
-
-            if (alarm_changes_checkbox.isSelected()) {
-                sample_count.setText(Messages.SampleView_Count + " " + samples.size()
-                        + " (" + Messages.SampleView_Count_Visible + " " + filtered_samples.size() + ")");
-            }
-        }
     }
 
-    private ObservableList<PlotSampleWrapper> showAlarmChanges() {
+    private ObservableList<PlotSampleWrapper> runSampleViewFilter(ObservableList<PlotSampleWrapper> samples) {
         final ObservableList<PlotSampleWrapper> new_samples = FXCollections.observableArrayList();
-        Alarm alarm = Alarm.none();
 
-        for (PlotSampleWrapper sample : this.samples) {
-            Alarm value_alarm = Alarm.alarmOf(sample.getSample().getVType());
-            if (! value_alarm.getSeverity().equals(alarm.getSeverity())) {
-                alarm = value_alarm;
-                new_samples.add(sample);
-            }
+        if (samples.isEmpty()) {
+            return new_samples;
         }
 
+            // Store the last viewed sample for each ModelItem,
+            // so that we can compare the current sample with the last viewed sample of that ModelItem
+        HashMap<ModelItem, PlotSampleWrapper> last_viewed_sample = new HashMap<>();
+
+        for (PlotSampleWrapper sample : samples) {
+                if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
+                //System.out.println("Cannot compare non-numerical types"); TODO: Log this?
+                new_samples.add(sample);
+                continue;
+            }
+
+            last_viewed_sample.putIfAbsent(sample.getModelItem(), sample);
+            PlotSampleWrapper previous_sample_for_item = last_viewed_sample.get(sample.getModelItem());
+
+                // Enum samples are compared by their index
+            double sample_value = sample.getSample().getValue();
+            double previous_sample_value = previous_sample_for_item.getSample().getValue();
+
+
+            ItemSampleViewFilter.FilterType filter_type = sample.getModelItem().getSampleViewFilter().getFilterType();
+            double filter_value = sample.getModelItem().getSampleViewFilter().getFilterValue();
+
+            Alarm alarm = Alarm.alarmOf(sample.getSample().getVType());
+            Alarm previous_alarm = Alarm.alarmOf(previous_sample_for_item.getSample().getVType());
+
+            switch (filter_type) {
+                case NO_FILTER:
+                    new_samples.add(sample);
+                    break;
+                case ALARM_UP:
+                    if (alarm.getSeverity().compareTo(previous_alarm.getSeverity()) > 0) {
+                        new_samples.add(sample);
+                    }
+                    last_viewed_sample.put(sample.getModelItem(), sample);
+                    break;
+                case ALARM_CHANGES:
+                    if (! alarm.getSeverity().equals(previous_alarm.getSeverity())) {
+                        new_samples.add(sample);
+                        last_viewed_sample.put(sample.getModelItem(), sample);
+                    }
+                    break;
+                case THRESHOLD_UP:
+                    if (sample_value >= filter_value && previous_sample_value < filter_value) {
+                        new_samples.add(sample);
+                    }
+                    last_viewed_sample.put(sample.getModelItem(), sample);
+                    break;
+                case THRESHOLD_CHANGES:
+                    if ((sample_value >= filter_value && previous_sample_for_item.getSample().getValue() < filter_value)
+                            || (sample_value < filter_value && previous_sample_for_item.getSample().getValue() > filter_value) ) {
+                        new_samples.add(sample);
+                        last_viewed_sample.put(sample.getModelItem(), sample);
+                    }
+                    break;
+            }
+        }
         return new_samples;
-    }
-
-    private void showThresholdCrossings(VType threshold_value) {
-        // Goes through the samples if between two samples the threshold is crossed,
-        // then the second sample is added to the list (After it passes the threshold)
-
-        // Have to handle most Vtypes seperately. Only the numeric and ENUM types can be compared
-        // TODO: strings and arrays not handled yet
     }
 
         // For also displaying the PVitem name in the list

@@ -98,6 +98,7 @@ public class Perspective extends SplitPane
         plot_tab.setGraphic(Activator.getIcon("databrowser"));
         plot_tab.setClosable(false);
         top_tabs.getTabs().setAll(plot_tab);
+        // TODO: Maybe hide the tab header when only plot is shown
 
         property_panel = new PropertyPanel(model, plot.getPlot().getUndoableActionManager());
         properties_tab = new Tab(Messages.PropertiesTabName, property_panel);
