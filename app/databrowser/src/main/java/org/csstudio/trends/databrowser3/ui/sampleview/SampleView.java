@@ -207,8 +207,11 @@ public class SampleView extends VBox
                     Activator.logger.log(Level.WARNING, "Cannot access samples for " + item.getResolvedName(), ex);
                 }
         }
+        all_samples_size = samples.size();
+        final ObservableList<PlotSampleWrapper> filtered_samples = runSampleViewFilter(samples);
+
         // Update UI
-        Platform.runLater(() -> updateSamples(samples));
+        Platform.runLater(() -> updateSamples(filtered_samples));
     }
 
     private void getSamplesAll() {
@@ -233,16 +236,19 @@ public class SampleView extends VBox
             }
 
         }
+        all_samples_size = samples.size();
+        final ObservableList<PlotSampleWrapper> filtered_samples = runSampleViewFilter(samples);
+
         // Update UI
-        Platform.runLater(() -> updateSamples(samples));
+        Platform.runLater(() -> updateSamples(filtered_samples));
     }
 
     private void updateSamples(ObservableList<PlotSampleWrapper> samples)
     {
-        all_samples_size = samples.size();
-        this.samples.setAll(runSampleViewFilter(samples));
+        this.samples.setAll(samples);
 
-        sample_table.getColumns().get(4).setVisible(true); // Display the PVitem name (Column 4)
+        // Display the PVitem name (Column 4)
+        sample_table.getColumns().get(4).setVisible(item_name != null && item_name.equals("All")); // Hide the PVitem name (Column 4)
             // Hide samples that are not visible in the plot when viewing all items
         sample_count.setText(Messages.SampleView_Count + " " + all_samples_size
                 + " (" + Messages.SampleView_Count_Visible + " " + this.samples.size() + ")");
@@ -261,12 +267,6 @@ public class SampleView extends VBox
         HashMap<ModelItem, PlotSampleWrapper> last_viewed_sample = new HashMap<>();
 
         for (PlotSampleWrapper sample : samples) {
-                if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
-                //System.out.println("Cannot compare non-numerical types"); TODO: Log this?
-                new_samples.add(sample);
-                continue;
-            }
-
             last_viewed_sample.putIfAbsent(sample.getModelItem(), sample);
             PlotSampleWrapper previous_sample_for_item = last_viewed_sample.get(sample.getModelItem());
 
@@ -298,14 +298,59 @@ public class SampleView extends VBox
                     }
                     break;
                 case THRESHOLD_UP:
+                        // Handle sample bundles when using optimized archive requests
+                        // TODO: Compare averages?
+                    if (sample.getVType() instanceof VStatistics) {
+                        sample_value = ((VStatistics) sample.getVType()).getAverage();
+                        previous_sample_value = ((VStatistics) previous_sample_for_item.getVType()).getAverage();
+                        double sample_value_min = ((VStatistics) sample.getVType()).getMin();
+                        double sample_value_max = ((VStatistics) sample.getVType()).getMax();
+
+                            // also has to check if threshold was passed within a bundle
+                        if (sample_value >= filter_value && previous_sample_value < filter_value || (sample_value_min < filter_value && sample_value_max >= filter_value)) {
+                            new_samples.add(sample);
+                        }
+                        continue;
+                    }
+
+                    if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
+                        System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
+                        new_samples.add(sample);
+                        continue;
+                    }
+
                     if (sample_value >= filter_value && previous_sample_value < filter_value) {
                         new_samples.add(sample);
                     }
                     last_viewed_sample.put(sample.getModelItem(), sample);
                     break;
                 case THRESHOLD_CHANGES:
-                    if ((sample_value >= filter_value && previous_sample_for_item.getSample().getValue() < filter_value)
-                            || (sample_value < filter_value && previous_sample_for_item.getSample().getValue() > filter_value) ) {
+                        // Handle sample bundles when using optimized archive requests
+                        // TODO: Compare averages?
+                    if (sample.getVType() instanceof VStatistics) {
+                        sample_value = ((VStatistics) sample.getVType()).getAverage();
+                        previous_sample_value = ((VStatistics) previous_sample_for_item.getVType()).getAverage();
+                        double sample_value_min = ((VStatistics) sample.getVType()).getMin();
+                        double sample_value_max = ((VStatistics) sample.getVType()).getMax();
+
+                            // also check if threshold was passed within a bundle
+                        if ((sample_value >= filter_value && previous_sample_value < filter_value)
+                                || (sample_value < filter_value && previous_sample_value > filter_value)
+                                || (sample_value_min < filter_value && sample_value_max >= filter_value)) {
+                            new_samples.add(sample);
+                            last_viewed_sample.put(sample.getModelItem(), sample);
+                        }
+                        continue;
+                    }
+
+                    if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
+                        System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
+                        new_samples.add(sample);
+                        continue;
+                    }
+
+                    if ((sample_value >= filter_value && previous_sample_value < filter_value)
+                            || (sample_value < filter_value && previous_sample_value > filter_value) ) {
                         new_samples.add(sample);
                         last_viewed_sample.put(sample.getModelItem(), sample);
                     }
