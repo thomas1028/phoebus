@@ -301,15 +301,17 @@ public class SampleView extends VBox
                         // Handle sample bundles when using optimized archive requests
                         // TODO: Compare averages?
                     if (sample.getVType() instanceof VStatistics) {
-                        sample_value = ((VStatistics) sample.getVType()).getAverage();
-                        previous_sample_value = ((VStatistics) previous_sample_for_item.getVType()).getAverage();
+                        double previous_sample_value_max = ((VStatistics) previous_sample_for_item.getVType()).getMax();
                         double sample_value_min = ((VStatistics) sample.getVType()).getMin();
                         double sample_value_max = ((VStatistics) sample.getVType()).getMax();
 
-                            // also has to check if threshold was passed within a bundle
-                        if (sample_value >= filter_value && previous_sample_value < filter_value || (sample_value_min < filter_value && sample_value_max >= filter_value)) {
+                        // Compare maximum of prev to minimum of current.
+                        // also check if threshold was passed within a bundle
+                        if ((previous_sample_value_max <= filter_value && sample_value_min > filter_value)
+                                || (sample_value_min < filter_value && sample_value_max >= filter_value)) {
                             new_samples.add(sample);
                         }
+                        last_viewed_sample.put(sample.getModelItem(), sample);
                         continue;
                     }
 
@@ -325,17 +327,16 @@ public class SampleView extends VBox
                     last_viewed_sample.put(sample.getModelItem(), sample);
                     break;
                 case THRESHOLD_CHANGES:
-                        // Handle sample bundles when using optimized archive requests
-                        // TODO: Compare averages?
+                        // Handle sample bundles when using optimized archive requests.
                     if (sample.getVType() instanceof VStatistics) {
-                        sample_value = ((VStatistics) sample.getVType()).getAverage();
-                        previous_sample_value = ((VStatistics) previous_sample_for_item.getVType()).getAverage();
+                        double previous_sample_value_max = ((VStatistics) previous_sample_for_item.getVType()).getMax();
                         double sample_value_min = ((VStatistics) sample.getVType()).getMin();
                         double sample_value_max = ((VStatistics) sample.getVType()).getMax();
 
-                            // also check if threshold was passed within a bundle
-                        if ((sample_value >= filter_value && previous_sample_value < filter_value)
-                                || (sample_value < filter_value && previous_sample_value > filter_value)
+                        // Compare maximum of prev to minimum of current.
+                        // also check if threshold was passed within a bundle
+                        if ((previous_sample_value_max >= filter_value && sample_value_min < filter_value)
+                                || (previous_sample_value_max <= filter_value && sample_value_min > filter_value)
                                 || (sample_value_min < filter_value && sample_value_max >= filter_value)) {
                             new_samples.add(sample);
                             last_viewed_sample.put(sample.getModelItem(), sample);
