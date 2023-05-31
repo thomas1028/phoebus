@@ -30,7 +30,6 @@ public class ChangeSampleViewFilterCommand extends UndoableAction {
         this.item = item;
         this.old_filter = item.getSampleViewFilter();
         this.new_filter = new_filter;
-        System.out.println("ChangeSampleViewFilterCommand: " + old_filter.toString() + " -> " + new_filter);
         operations_manager.execute(this);
     }
 
