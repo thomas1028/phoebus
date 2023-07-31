@@ -77,9 +77,9 @@ public class Perspective extends SplitPane
 
     private final Model model = new Model();
     private final ModelBasedPlot plot = new ModelBasedPlot(true);
-    private SearchView search;
+    private SearchView search = null;
     private ExportView export = null;
-    private SampleView inspect = null;
+    private SampleView sampleview = null;
     private WaveformView waveform = null;
 
     private final Controller controller;
@@ -88,7 +88,7 @@ public class Perspective extends SplitPane
     private final TabPane top_tabs = new TabPane();
     private final SplitPane plot_and_tabs = new SplitPane(top_tabs, bottom_tabs);
     private PropertyPanel property_panel;
-    private Tab plot_tab, search_tab, properties_tab, export_tab, inspect_tab, waveform_tab = null;
+    private Tab plot_tab, search_tab, properties_tab, export_tab, sampleview_tab, waveform_tab = null;
 
 
     /** @param minimal Only show the essentials? */
@@ -181,8 +181,8 @@ public class Perspective extends SplitPane
         final MenuItem show_samples = new MenuItem(Messages.InspectSamples, Activator.getIcon("search"));
         show_samples.setOnAction(event ->
         {
-            createInspectionTab();
-            showTopTab(inspect_tab);
+            createSampleViewTab();
+            showTopTab(sampleview_tab);
         });
 
         final MenuItem show_waveform = new MenuItem(Messages.OpenWaveformView, Activator.getIcon("wavesample"));
@@ -256,14 +256,14 @@ public class Perspective extends SplitPane
         }
     }
 
-    private void createInspectionTab()
+    private void createSampleViewTab()
     {
-        if (inspect_tab == null)
+        if (sampleview_tab == null)
         {
-            inspect = new SampleView(model);
-            inspect_tab = new Tab(Messages.InspectSamples, inspect);
-            inspect_tab.setGraphic(Activator.getIcon("search"));
-            inspect_tab.setOnClosed(evt -> autoMinimizeBottom());
+            sampleview = new SampleView(model);
+            sampleview_tab = new Tab(Messages.InspectSamples, sampleview);
+            sampleview_tab.setGraphic(Activator.getIcon("search"));
+            sampleview_tab.setOnClosed(evt -> autoMinimizeBottom());
         }
     }
 
@@ -503,6 +503,7 @@ public class Perspective extends SplitPane
         if (left_tabs.getTabs().contains(search_tab))
             memento.setBoolean(SHOW_SEARCH, true);
 
+            // properties open by default. save only if closed
         if (! bottom_tabs.getTabs().contains(properties_tab))
             memento.setBoolean(SHOW_PROPERTIES, false);
 
