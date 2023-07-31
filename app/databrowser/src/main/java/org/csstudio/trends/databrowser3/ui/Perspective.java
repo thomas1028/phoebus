@@ -71,7 +71,8 @@ public class Perspective extends SplitPane
                                 SHOW_SEARCH = "show_search",
                                 SHOW_PROPERTIES = "show_properties",
                                 SHOW_EXPORT = "show_export",
-                                SHOW_WAVEFORM = "show_waveform";
+                                SHOW_WAVEFORM = "show_waveform",
+                                SHOW_INSPECT = "show_inspect"; // Todo: rename to show_sampleview for better readability
 
     private static final Preferences prefs = PhoebusPreferenceService.userNodeForClass(Perspective.class);
 
@@ -472,6 +473,15 @@ public class Perspective extends SplitPane
             }
         });
 
+        memento.getBoolean(SHOW_INSPECT).ifPresent(show ->
+        {
+            if (show)
+            {
+                createSampleViewTab();
+                top_tabs.getTabs().add(sampleview_tab); //TODO: Adjust for button
+            }
+        });
+
         // Has no effect when run right now?
         Platform.runLater(() ->
         {
@@ -512,6 +522,9 @@ public class Perspective extends SplitPane
 
         if (bottom_tabs.getTabs().contains(waveform_tab))
             memento.setBoolean(SHOW_WAVEFORM, true);
+
+        if (top_tabs.getTabs().contains(sampleview_tab))
+            memento.setBoolean(SHOW_INSPECT, true);
     }
 
     /** Reclaim resources */
