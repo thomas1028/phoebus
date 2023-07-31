@@ -450,6 +450,14 @@ abstract public class ModelItem
         writer.writeStartElement(XMLPersistence.TAG_WAVEFORM_INDEX);
         writer.writeCharacters(Integer.toString(getWaveformIndex()));
         writer.writeEndElement();
+
+        writer.writeStartElement(XMLPersistence.TAG_FILTER_TYPE);
+        writer.writeCharacters(getSampleViewFilter().getFilterType().name());
+        writer.writeEndElement();
+
+        writer.writeStartElement(XMLPersistence.TAG_FILTER_VALUE);
+        writer.writeCharacters(Double.toString(getSampleViewFilter().getFilterValue()));
+        writer.writeEndElement();
     }
 
     /** Load common XML configuration elements into this item
@@ -513,6 +521,31 @@ abstract public class ModelItem
             }
         }
         setWaveformIndex(XMLUtil.getChildInteger(node, XMLPersistence.TAG_WAVEFORM_INDEX).orElse(0));
+
+        try
+        {
+            String filter_type_from_document =
+                    XMLUtil.getChildString(node, XMLPersistence.TAG_FILTER_TYPE)
+                            .orElse(ItemSampleViewFilter.FilterType.NO_FILTER.name());
+            sample_view_filter.setFilterType(ItemSampleViewFilter.FilterType.valueOf(filter_type_from_document));
+        }
+        catch (Throwable ex)
+        {
+            sample_view_filter.setFilterType(ItemSampleViewFilter.FilterType.NO_FILTER); // Default to no filter
+        }
+
+        try
+        {
+            double filter_value_from_document =
+                    XMLUtil.getChildDouble(node, XMLPersistence.TAG_FILTER_VALUE)
+                            .orElse(0.0);
+            sample_view_filter.setFilterValue(filter_value_from_document);
+        }
+        catch (Throwable ex)
+        {
+            sample_view_filter.setFilterValue(0.0); // Default to 0.0
+        }
+
     }
 
     /** Dispose all data */
