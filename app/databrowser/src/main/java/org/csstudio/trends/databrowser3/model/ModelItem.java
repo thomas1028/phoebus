@@ -363,6 +363,25 @@ abstract public class ModelItem
         // Do nothing.
     }
 
+    /**
+     *
+     * @return Current SampleView Filter
+     */
+    public ItemSampleViewFilter getSampleViewFilter()
+    {
+        return sample_view_filter;
+    }
+
+    /**
+     *
+     * @param sample_view_filter New Filter object to be used for the SampleView display of this item
+     */
+    public void setSampleViewFilter(ItemSampleViewFilter sample_view_filter)
+    {
+        this.sample_view_filter = sample_view_filter;
+        fireItemLookChanged();
+    }
+
     /** @return Samples held by this item */
     abstract public PlotSamples getSamples();
 
@@ -504,15 +523,5 @@ abstract public class ModelItem
     public String toString()
     {
         return name;
-    }
-
-    public ItemSampleViewFilter getSampleViewFilter()
-    {
-        return sample_view_filter;
-    }
-
-    public void setSampleViewFilter(ItemSampleViewFilter sample_view_filter)
-    {
-        this.sample_view_filter = sample_view_filter;
     }
 }
