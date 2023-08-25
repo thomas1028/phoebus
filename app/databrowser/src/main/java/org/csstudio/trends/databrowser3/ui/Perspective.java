@@ -74,7 +74,8 @@ public class Perspective extends SplitPane
                                 SHOW_PROPERTIES = "show_properties",
                                 SHOW_EXPORT = "show_export",
                                 SHOW_WAVEFORM = "show_waveform",
-                                SHOW_SAMPLEVIEW = "show_sampleview";
+                                SHOW_SAMPLEVIEW = "show_sampleview",
+                                SAMPLEVIEW_IN_BOTTOM_TABS = "sampleview_in_bottom_tabs";
 
     private static final Preferences prefs = PhoebusPreferenceService.userNodeForClass(Perspective.class);
 
@@ -90,7 +91,6 @@ public class Perspective extends SplitPane
     private final Controller controller;
     private final TabPane left_tabs = new TabPane(),
                           bottom_tabs = new TabPane();
-    private final TabPane top_tabs = new TabPane();
     private final Pane top_pane = new StackPane();
     private final SplitPane plot_and_tabs = new SplitPane(top_pane, bottom_tabs);
     private Tab search_tab, properties_tab, export_tab, sampleview_tab, waveform_tab;
@@ -287,8 +287,8 @@ public class Perspective extends SplitPane
     }
 
     // Gets called from the SampleView contextmenu, so we can assume it's not null
-    public void toggleSampleViewPosition() {
-        if (top_pane.getChildren().contains(sampleview)) {
+    public void setSampleviewLocation(boolean set_in_bottom_tabs) {
+        if (set_in_bottom_tabs) {
             top_pane.getChildren().setAll(plot.getPlot());
             showBottomTab(sampleview_tab);
         }
@@ -451,29 +451,6 @@ public class Perspective extends SplitPane
         Platform.runLater(() -> plot_and_tabs.layout() );
     }
 
-    private void showTopTab(final Tab tab)
-    {
-        // If tab not on screen, add it
-        if (! top_tabs.getTabs().contains(tab))
-                top_tabs.getTabs().add(tab);
-
-        // Select the requested tab
-        top_tabs.getSelectionModel().select(tab);
-
-        // Assert that the tabs section is visible
-        if (! plot_and_tabs.getItems().contains(top_tabs))
-        {
-            plot_and_tabs.getItems().add(top_tabs);
-            plot_and_tabs.setDividerPositions(0.8);
-        }
-        if (plot_and_tabs.getDividers().get(0).getPosition() > 0.9)
-            plot_and_tabs.setDividerPositions(0.8);
-
-        // If tab was just added, its header won't show
-        // correctly unless we schedule a re-layout
-        Platform.runLater(() -> plot_and_tabs.layout() );
-    }
-
     /** @param memento From where to restore previously saved settings */
     public void restore(final Memento memento)
     {
@@ -512,7 +489,9 @@ public class Perspective extends SplitPane
             if (show)
             {
                 createSampleViewTab();
-                top_tabs.getTabs().add(sampleview_tab); //TODO: Adjust for button
+                memento.getBoolean(SAMPLEVIEW_IN_BOTTOM_TABS).ifPresent(in_bottom_tabs -> {
+                    setSampleviewLocation(in_bottom_tabs);
+                });
             }
         });
 
@@ -557,8 +536,14 @@ public class Perspective extends SplitPane
         if (bottom_tabs.getTabs().contains(waveform_tab))
             memento.setBoolean(SHOW_WAVEFORM, true);
 
-        if (top_tabs.getTabs().contains(sampleview_tab))
+        if (top_pane.getChildren().contains(sampleview)) {
             memento.setBoolean(SHOW_SAMPLEVIEW, true);
+            memento.setBoolean(SAMPLEVIEW_IN_BOTTOM_TABS, false);
+        }
+        if (bottom_tabs.getTabs().contains(sampleview_tab)) {
+            memento.setBoolean(SHOW_SAMPLEVIEW, true);
+            memento.setBoolean(SAMPLEVIEW_IN_BOTTOM_TABS, true);
+        }
     }
 
     /** Reclaim resources */

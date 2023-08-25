@@ -15,11 +15,12 @@ public class ToggleSampleViewPositionMenuItem extends MenuItem
         if (perspective.isSampleViewInBottomTabs()) { // TODO: check position
             setText("Move SampleView Up (Replace Plot)"); //TODO: get from messages
             setGraphic(ImageCache.getImageView(SampleView.class, "/icons/up.png"));
+            setOnAction(event -> perspective.setSampleviewLocation(false));
         }
         else {
             setGraphic(ImageCache.getImageView(SampleView.class, "/icons/down.png")); //TODO: change
             setText("Move SampleView Down"); //TODO: get from messages
+            setOnAction(event -> perspective.setSampleviewLocation(true));
         }
-        setOnAction(event -> perspective.toggleSampleViewPosition());
     }
 }
