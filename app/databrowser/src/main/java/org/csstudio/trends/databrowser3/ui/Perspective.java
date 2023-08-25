@@ -11,13 +11,14 @@ import static org.csstudio.trends.databrowser3.Activator.logger;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.imports.SampleImportAction;
@@ -32,6 +33,7 @@ import org.csstudio.trends.databrowser3.ui.properties.AddPVorFormulaMenuItem;
 import org.csstudio.trends.databrowser3.ui.properties.PropertyPanel;
 import org.csstudio.trends.databrowser3.ui.properties.RemoveUnusedAxes;
 import org.csstudio.trends.databrowser3.ui.sampleview.SampleView;
+import org.csstudio.trends.databrowser3.ui.sampleview.ToggleSampleViewPositionMenuItem;
 import org.csstudio.trends.databrowser3.ui.search.SearchView;
 import org.csstudio.trends.databrowser3.ui.selection.DatabrowserSelection;
 import org.csstudio.trends.databrowser3.ui.waveformview.WaveformView;
@@ -82,24 +84,23 @@ public class Perspective extends SplitPane
     private ExportView export = null;
     private SampleView sampleview = null;
     private WaveformView waveform = null;
+    private final PropertyPanel property_panel;
+
 
     private final Controller controller;
     private final TabPane left_tabs = new TabPane(),
                           bottom_tabs = new TabPane();
     private final TabPane top_tabs = new TabPane();
-    private final SplitPane plot_and_tabs = new SplitPane(top_tabs, bottom_tabs);
-    private PropertyPanel property_panel;
-    private Tab plot_tab, search_tab, properties_tab, export_tab, sampleview_tab, waveform_tab = null;
+    private final Pane top_pane = new StackPane();
+    private final SplitPane plot_and_tabs = new SplitPane(top_pane, bottom_tabs);
+    private Tab search_tab, properties_tab, export_tab, sampleview_tab, waveform_tab;
 
 
     /** @param minimal Only show the essentials? */
     public Perspective(final boolean minimal)
     {
-        plot_tab = new Tab("Plot", plot.getPlot()); // TODO: Get text from Messages
-        plot_tab.setGraphic(Activator.getIcon("databrowser"));
-        plot_tab.setClosable(false);
-        top_tabs.getTabs().setAll(plot_tab);
-        // TODO: Maybe hide the tab header when only plot is shown
+        top_pane.getChildren().setAll(plot.getPlot());
+
 
         property_panel = new PropertyPanel(model, plot.getPlot().getUndoableActionManager());
         properties_tab = new Tab(Messages.PropertiesTabName, property_panel);
@@ -183,7 +184,7 @@ public class Perspective extends SplitPane
         show_samples.setOnAction(event ->
         {
             createSampleViewTab();
-            showTopTab(sampleview_tab);
+            showBottomTab(sampleview_tab);
         });
 
         final MenuItem show_waveform = new MenuItem(Messages.OpenWaveformView, Activator.getIcon("wavesample"));
@@ -210,7 +211,7 @@ public class Perspective extends SplitPane
             items.add(new PrintAction(plot.getPlot().getCenter()));
             items.add(new SaveSnapshotAction(plot.getPlot().getCenter()));
 
-            SelectionService.getInstance().setSelection(this, Arrays.asList(DatabrowserSelection.of(model, plot)));
+            SelectionService.getInstance().setSelection(this, List.of(DatabrowserSelection.of(model, plot)));
             List<ContextMenuEntry> supported = ContextMenuService.getInstance().listSupportedContextMenuEntries();
             supported.stream().forEach(action -> {
                 MenuItem menuItem = new MenuItem(action.getName(), new ImageView(action.getIcon()));
@@ -230,6 +231,21 @@ public class Perspective extends SplitPane
                 items.add(new RemoveUnusedAxes(model, undo));
             }
             items.addAll(new SeparatorMenuItem(), show_search, show_properties, show_export, show_samples, show_waveform, refresh);
+
+            menu.show(getScene().getWindow(), event.getScreenX(), event.getScreenY());
+        });
+    }
+
+    private void createSampleViewContextMenu() {
+        // do setOnContextMenuRequested on the top container instead of plot or sampleview
+        // then check if clicked on plot or sampleview?
+        // or do setOnContextMenuRequested when setting up sampleview
+        final ContextMenu menu = new ContextMenu();
+        final ObservableList<MenuItem> items = menu.getItems();
+
+        sampleview.setOnContextMenuRequested(event -> {
+            items.clear();
+            items.add(new ToggleSampleViewPositionMenuItem(this));
 
             menu.show(getScene().getWindow(), event.getScreenX(), event.getScreenY());
         });
@@ -265,7 +281,25 @@ public class Perspective extends SplitPane
             sampleview_tab = new Tab(Messages.InspectSamples, sampleview);
             sampleview_tab.setGraphic(Activator.getIcon("search"));
             sampleview_tab.setOnClosed(evt -> autoMinimizeBottom());
+
+            createSampleViewContextMenu();
         }
+    }
+
+    // Gets called from the SampleView contextmenu, so we can assume it's not null
+    public void toggleSampleViewPosition() {
+        if (top_pane.getChildren().contains(sampleview)) {
+            top_pane.getChildren().setAll(plot.getPlot());
+            showBottomTab(sampleview_tab);
+        }
+        else {
+            bottom_tabs.getTabs().remove(sampleview_tab);
+            top_pane.getChildren().setAll(sampleview);
+        }
+    }
+
+    public boolean isSampleViewInBottomTabs() {
+        return bottom_tabs.getTabs().contains(sampleview_tab);
     }
 
     private void createWaveformTab()

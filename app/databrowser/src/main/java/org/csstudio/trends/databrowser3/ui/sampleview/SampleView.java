@@ -9,16 +9,13 @@ package org.csstudio.trends.databrowser3.ui.sampleview;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.scene.control.*;
 import javafx.scene.layout.Region;
-import javafx.util.converter.DoubleStringConverter;
 import org.csstudio.trends.databrowser3.Activator;
 import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.model.*;
@@ -49,7 +46,7 @@ public class SampleView extends VBox
     private final ComboBox<String> items = new ComboBox<>();
     private final Label sample_count = new Label(Messages.SampleView_Count);
     private final TableView<PlotSampleWrapper> sample_table = new TableView<>();
-    private volatile String item_name = null;
+    private volatile String item_name = null; // TODO: this could cause issues if item is named "All"
     private final ObservableList<PlotSampleWrapper> samples = FXCollections.observableArrayList();
     private final SortedList<PlotSampleWrapper> sorted_samples = new SortedList<>(samples);
     private int all_samples_size;
@@ -316,7 +313,7 @@ public class SampleView extends VBox
                     }
 
                     if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
-                        System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
+                        //System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
                         new_samples.add(sample);
                         continue;
                     }
@@ -345,7 +342,7 @@ public class SampleView extends VBox
                     }
 
                     if (! (sample.getVType() instanceof VNumber || sample.getVType() instanceof VEnum)) {
-                        System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
+                        //System.out.println("Cannot compare non-numerical types"); //TODO: Log this?
                         new_samples.add(sample);
                         continue;
                     }
@@ -396,5 +393,4 @@ public class SampleView extends VBox
                 return sample.toString();
             }
         }
-
 }
