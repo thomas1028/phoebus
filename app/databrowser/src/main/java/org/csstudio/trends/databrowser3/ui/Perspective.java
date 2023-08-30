@@ -237,15 +237,56 @@ public class Perspective extends SplitPane
     }
 
     private void createSampleViewContextMenu() {
-        // do setOnContextMenuRequested on the top container instead of plot or sampleview
-        // then check if clicked on plot or sampleview?
-        // or do setOnContextMenuRequested when setting up sampleview
         final ContextMenu menu = new ContextMenu();
         final ObservableList<MenuItem> items = menu.getItems();
+
+        // TODO: Refactor and extract menu item creation to avoid duplication
+        final UndoableActionManager undo = plot.getPlot().getUndoableActionManager();
+
+        final List<MenuItem> add_data = new ArrayList<>();
+        add_data.add(new AddPVorFormulaMenuItem(plot.getPlot(), model, undo, false));
+        add_data.add(new AddPVorFormulaMenuItem(plot.getPlot(), model, undo, true));
+
+        for (String type : SampleImporters.getTypes())
+            add_data.add(new SampleImportAction(model, type, undo));
+
+        final MenuItem show_search = new MenuItem(Messages.OpenSearchView, Activator.getIcon("search"));
+        show_search.setOnAction(event -> showSearchTab());
+
+        final MenuItem show_properties = new MenuItem(Messages.OpenPropertiesView, Activator.getIcon("properties"));
+        show_properties.setOnAction(event ->
+        {
+            // Update pref that properties were last opened
+            prefs.putBoolean(SHOW_PROPERTIES, true);
+            showBottomTab(properties_tab);
+        });
+
+        final MenuItem show_export = new MenuItem(Messages.OpenExportView, Activator.getIcon("export"));
+        show_export.setOnAction(event ->
+        {
+            createExportTab();
+            showBottomTab(export_tab);
+        });
+
+        final MenuItem show_waveform = new MenuItem(Messages.OpenWaveformView, Activator.getIcon("wavesample"));
+        show_waveform.setOnAction(event ->
+        {
+            createWaveformTab();
+            showBottomTab(waveform_tab);
+        });
+        final MenuItem refresh = new MenuItem(Messages.Refresh, Activator.getIcon("refresh_remote"));
+        refresh.setOnAction(event -> sampleview.update());
+
 
         sampleview.setOnContextMenuRequested(event -> {
             items.clear();
             items.add(new ToggleSampleViewPositionMenuItem(this));
+            items.add(new SeparatorMenuItem());
+
+            items.addAll(add_data);
+            items.add(new SeparatorMenuItem());
+
+            items.addAll(new SeparatorMenuItem(), show_search, show_properties, show_export, show_waveform, refresh);
 
             menu.show(getScene().getWindow(), event.getScreenX(), event.getScreenY());
         });

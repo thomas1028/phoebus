@@ -155,7 +155,7 @@ public class SampleView extends VBox
         }
     }
 
-    private void update()
+    public void update()
     {
         final List<String> model_items = model.getItems().stream().map(ModelItem::getResolvedName).collect(Collectors.toList());
         final List<String> items_without_all = items.getItems().stream()
