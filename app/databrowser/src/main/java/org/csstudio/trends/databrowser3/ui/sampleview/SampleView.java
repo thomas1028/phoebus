@@ -155,12 +155,17 @@ public class SampleView extends VBox
         }
     }
 
+    /**
+     *  Updates the item list if model items differ from the current list.
+     *  Updates the samples in list from model.
+     */
     public void update()
     {
         final List<String> model_items = model.getItems().stream().map(ModelItem::getResolvedName).collect(Collectors.toList());
         final List<String> items_without_all = items.getItems().stream()
-                .filter(item -> ! item.equals("All")).collect(Collectors.toList()); // for comparing with model_items and updating on change
+                .filter(item -> ! item.equals("All")).collect(Collectors.toList()); // for comparing with model_items
 
+            // Update item list only if model items differs from the current list
         if (! model_items.equals(items_without_all))
         {
             items.getItems().setAll( model_items );
@@ -173,6 +178,7 @@ public class SampleView extends VBox
                 items.getSelectionModel().select(item_name);
         }
         // Update samples off the UI thread
+        // "All" option shows samples from all items
         if (item_name != null && item_name.equals("All")) {
             Activator.thread_pool.submit(this::getSamplesAll);
         } else {

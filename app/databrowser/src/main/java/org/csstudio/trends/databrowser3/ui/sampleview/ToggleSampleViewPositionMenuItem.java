@@ -2,6 +2,7 @@ package org.csstudio.trends.databrowser3.ui.sampleview;
 
 
 import javafx.scene.control.MenuItem;
+import org.csstudio.trends.databrowser3.Messages;
 import org.csstudio.trends.databrowser3.ui.Perspective;
 import org.phoebus.ui.javafx.ImageCache;
 
@@ -10,16 +11,16 @@ import org.phoebus.ui.javafx.ImageCache;
  */
 public class ToggleSampleViewPositionMenuItem extends MenuItem
 {
-    public ToggleSampleViewPositionMenuItem(final Perspective perspective) // FIXME: is that the right way to do that?
+    public ToggleSampleViewPositionMenuItem(final Perspective perspective)
     {
-        if (perspective.isSampleViewInBottomTabs()) { // TODO: check position
-            setText("Move SampleView Up (Replace Plot)"); //TODO: get from messages
+        if (perspective.isSampleViewInBottomTabs()) {
+            setText(Messages.SampleView_Move_Up);
             setGraphic(ImageCache.getImageView(SampleView.class, "/icons/up.png"));
             setOnAction(event -> perspective.setSampleviewLocation(false));
         }
         else {
-            setGraphic(ImageCache.getImageView(SampleView.class, "/icons/down.png")); //TODO: change
-            setText("Move SampleView Down"); //TODO: get from messages
+            setGraphic(ImageCache.getImageView(SampleView.class, "/icons/down.png"));
+            setText(Messages.SampleView_Move_Down);
             setOnAction(event -> perspective.setSampleviewLocation(true));
         }
     }

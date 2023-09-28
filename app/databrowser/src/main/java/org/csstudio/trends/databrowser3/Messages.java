@@ -249,6 +249,8 @@ public class Messages
                          SampleView_Count,
                          SampleView_Count_Visible,
                          SampleView_Item,
+                         SampleView_Move_Down,
+                         SampleView_Move_Up ,
                          SampleView_Refresh,
                          SampleView_RefreshTT,
                          SampleView_SelectItem,

@@ -280,12 +280,8 @@ public class Perspective extends SplitPane
 
         sampleview.setOnContextMenuRequested(event -> {
             items.clear();
-            items.add(new ToggleSampleViewPositionMenuItem(this));
-            items.add(new SeparatorMenuItem());
-
+            items.addAll(new ToggleSampleViewPositionMenuItem(this), new SeparatorMenuItem());
             items.addAll(add_data);
-            items.add(new SeparatorMenuItem());
-
             items.addAll(new SeparatorMenuItem(), show_search, show_properties, show_export, show_waveform, refresh);
 
             menu.show(getScene().getWindow(), event.getScreenX(), event.getScreenY());
